@@ -26,15 +26,70 @@ function useBurner() {
   $("acct").innerHTML = "<b>" + accountLabel + "</b>";
 }
 
-async function useMetaMask() {
-  if (!window.ethereum) { alert("MetaMask is not installed. The page will keep using the browser key."); return; }
+// Find the real MetaMask even when other wallet extensions (OKX, Phantom, Rabby,
+// Coinbase…) are installed and have taken over window.ethereum.
+const announced = [];
+window.addEventListener("eip6963:announceProvider", (e) => announced.push(e.detail));
+window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+function findMetaMask() {
+  const viaEip = announced.find((d) => d.info && d.info.rdns === "io.metamask");
+  if (viaEip) return viaEip.provider;
+  const eth = window.ethereum;
+  if (!eth) return null;
+  if (Array.isArray(eth.providers)) {
+    const mm = eth.providers.find((p) => p.isMetaMask && !p.isBraveWallet && !p.isRabby && !p.isOkxWallet && !p.isPhantom);
+    if (mm) return mm;
+  }
+  if (eth.isMetaMask && !eth.isRabby && !eth.isOkxWallet && !eth.isPhantom && !eth.isBraveWallet) return eth;
+  return null;
+}
+
+function pointSdkAt(provider) {
+  // genlayer-js signs through window.ethereum, so make sure it is MetaMask.
+  if (window.ethereum === provider) return true;
+  try { Object.defineProperty(window, "ethereum", { value: provider, configurable: true, writable: true }); } catch {}
+  if (window.ethereum !== provider) { try { window.ethereum = provider; } catch {} }
+  return window.ethereum === provider;
+}
+
+const STUDIO_CHAIN = {
+  chainId: "0x" + (61999).toString(16),
+  chainName: "GenLayer Studio",
+  nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
+  rpcUrls: ["https://studio.genlayer.com/api"],
+  blockExplorerUrls: ["https://explorer-studio.genlayer.com"],
+};
+
+async function switchNetwork(provider) {
   try {
-    const [addr] = await window.ethereum.request({ method: "eth_requestAccounts" });
+    await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: STUDIO_CHAIN.chainId }] });
+  } catch (e) {
+    if (e && (e.code === 4902 || String(e.message || "").includes("Unrecognized"))) {
+      await provider.request({ method: "wallet_addEthereumChain", params: [STUDIO_CHAIN] });
+    } else throw e;
+  }
+}
+
+async function useMetaMask() {
+  await new Promise((r) => setTimeout(r, 300)); // give wallets time to announce
+  const mm = findMetaMask();
+  if (!mm) {
+    toastError("MetaMask was not found. If another wallet extension (OKX, Phantom, Rabby, Coinbase) is installed, turn it off in chrome://extensions, reload this page and try again. You can keep using the browser key meanwhile.");
+    return;
+  }
+  if (!pointSdkAt(mm)) {
+    toastError("Another wallet extension is blocking MetaMask on this page. Turn the other wallet off in chrome://extensions, reload and connect again.");
+    return;
+  }
+  try {
+    const [addr] = await mm.request({ method: "eth_requestAccounts" });
+    try { await switchNetwork(mm); } catch (e) { toastError("Please approve the GenLayer Studio network in MetaMask."); }
     client = createClient({ chain: studionet, account: addr });
-    try { await client.connect("studionet"); } catch {}
     accountLabel = short(addr) + " (MetaMask)";
     $("acct").innerHTML = "<b>" + accountLabel + "</b>";
     $("connectBtn").textContent = "MetaMask connected";
+    $("tx").classList.remove("show");
   } catch (e) { toastError("MetaMask connection was rejected."); }
 }
 
