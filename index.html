@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoadmapProof</title>
+<meta name="description" content="Crypto teams put every roadmap promise on-chain. GenLayer validators read the official page at the deadline and decide: kept or broken.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1C1838; --ink-2:#262049; --ink-3:#322a5e; --line:#41397a;
+  --paper:#EDE9FF; --muted:#A9A2D6;
+  --kept:#3DDC97; --broken:#FF5D73; --pending:#FFC145; --route:#8B7CFF; --sky:#4CC9F0;
+  --r-sm:8px; --r-md:14px; --r-lg:22px;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ink);color:var(--paper);font-family:Manrope,system-ui,sans-serif;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--sky)}
+h1,h2,h3{font-family:Syne,sans-serif;line-height:1.05;margin:0}
+button,input,textarea{font:inherit}
+:focus-visible{outline:3px solid var(--pending);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* top bar */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0}
+.logo{display:flex;align-items:center;gap:10px;font-family:Syne;font-weight:800;font-size:20px;letter-spacing:-.01em}
+.logo svg{width:30px;height:30px}
+.wallet{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.chip{background:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:14px;color:var(--muted);white-space:nowrap}
+.chip b{color:var(--paper);font-weight:600}
+.btn{border:0;border-radius:999px;padding:11px 20px;font-weight:700;cursor:pointer;background:var(--paper);color:var(--ink);transition:transform .12s}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--line)}
+.btn.go{background:linear-gradient(100deg,var(--route),var(--sky));color:#fff}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;padding:36px 0 56px}
+.hero h1{font-size:clamp(40px,6.4vw,78px);font-weight:800;letter-spacing:-.03em}
+.hero p{color:var(--muted);font-size:19px;max-width:34em;margin:22px 0 28px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.road{width:100%;height:auto;overflow:visible}
+.road .path{fill:none;stroke-width:14;stroke-linecap:round;stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 2.4s cubic-bezier(.6,.1,.2,1) .2s forwards}
+.road .ghost-path{fill:none;stroke:var(--ink-3);stroke-width:14;stroke-linecap:round}
+.road .stop{transform-box:fill-box;transform-origin:center;transform:scale(0);animation:pop .5s cubic-bezier(.3,1.6,.5,1) forwards}
+.road text{font-family:Manrope;font-weight:700;font-size:15px;fill:var(--paper)}
+.road .sub{font-weight:500;font-size:13px;fill:var(--muted)}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes pop{to{transform:scale(1)}}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;margin-bottom:56px}
+.stat{padding:22px 24px;border-right:1px solid var(--line)}
+.stat:last-child{border-right:0}
+.stat .n{font-family:Syne;font-size:38px;font-weight:800;line-height:1}
+.stat .l{color:var(--muted);font-size:14px;margin-top:6px}
+.n.kept{color:var(--kept)} .n.broken{color:var(--broken)} .n.pending{color:var(--pending)} .n.bond{color:var(--sky)}
+
+/* main */
+.grid{display:grid;grid-template-columns:400px 1fr;gap:28px;align-items:start}
+.panel{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:26px}
+.panel h2{font-size:26px;margin-bottom:6px}
+.panel .hint{color:var(--muted);font-size:14px;margin:0 0 20px}
+label{display:block;font-weight:600;font-size:14px;margin:16px 0 6px}
+input,textarea{width:100%;background:var(--ink);border:1px solid var(--line);color:var(--paper);border-radius:var(--r-sm);padding:12px 14px}
+textarea{resize:vertical;min-height:84px}
+input::placeholder,textarea::placeholder{color:#6f68a3}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-foot{margin-top:22px}
+.form-foot .btn{width:100%}
+.sticky{position:sticky;top:16px}
+
+.feed-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.feed-head h2{font-size:34px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:600}
+.tab[aria-pressed=true]{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+
+.promise{position:relative;background:var(--ink-2);border:1px solid var(--line);border-left:6px solid var(--pending);border-radius:var(--r-md);padding:20px 22px;margin-bottom:14px;overflow:hidden}
+.promise.KEPT{border-left-color:var(--kept)}
+.promise.BROKEN{border-left-color:var(--broken)}
+.promise .proj{font-family:Syne;font-weight:700;font-size:20px}
+.promise .claim{font-size:17px;margin:6px 0 12px;max-width:52ch;padding-right:110px}
+.meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+.meta a{color:var(--sky);word-break:break-all}
+.reason{margin-top:12px;padding:10px 14px;background:var(--ink);border-radius:var(--r-sm);font-size:14px;color:var(--paper)}
+.stamp{position:absolute;top:18px;right:18px;transform:rotate(-9deg);border:3px solid currentColor;border-radius:8px;padding:4px 12px;font-family:Syne;font-weight:800;font-size:18px;letter-spacing:.04em;color:var(--pending)}
+.KEPT .stamp{color:var(--kept)} .BROKEN .stamp{color:var(--broken)}
+.promise .actions{margin-top:14px}
+.btn.small{padding:8px 16px;font-size:14px}
+.empty{border:2px dashed var(--line);border-radius:var(--r-lg);padding:40px;text-align:center;color:var(--muted)}
+
+/* leaderboard */
+.board{margin-top:56px}
+.board h2{font-size:34px;margin-bottom:16px}
+.lb{display:grid;gap:10px}
+.lb-row{display:grid;grid-template-columns:1fr 2fr 70px;gap:16px;align-items:center;background:var(--ink-2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 20px}
+.lb-row .name{font-weight:700}
+.meter{height:12px;border-radius:999px;background:var(--ink);overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.score{font-family:Syne;font-weight:800;font-size:22px;text-align:right}
+
+/* how */
+.how{margin:72px 0 40px}
+.how h2{font-size:34px;margin-bottom:20px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:s}
+.step{border-top:4px solid var(--route);padding-top:14px}
+.step:nth-child(2){border-color:var(--sky)} .step:nth-child(3){border-color:var(--pending)} .step:nth-child(4){border-color:var(--kept)}
+.step h3{font-size:19px;margin-bottom:6px}
+.step h3::before{counter-increment:s;content:counter(s) ". "}
+.step p{color:var(--muted);margin:0;font-size:15px}
+footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);font-size:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+/* tx lifecycle drawer */
+.tx{position:fixed;right:20px;bottom:20px;width:min(380px,calc(100vw - 32px));background:var(--paper);color:var(--ink);border-radius:var(--r-lg);padding:20px 22px;box-shadow:0 20px 60px rgba(10,6,40,.55);transform:translateY(140%);transition:transform .35s cubic-bezier(.3,1.2,.5,1);z-index:50}
+.tx.show{transform:none}
+.tx h3{font-size:18px;margin-bottom:4px}
+.tx .hash{font-size:12px;color:#5b5490;word-break:break-all;margin-bottom:14px}
+.tx ol{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+.tx li{display:flex;align-items:center;gap:10px;font-weight:600;color:#8d87b8}
+.tx li .dot{width:14px;height:14px;border-radius:50%;border:2px solid #c9c4ea;flex:none}
+.tx li.done{color:var(--ink)} .tx li.done .dot{background:var(--kept);border-color:var(--kept)}
+.tx li.now{color:var(--ink)} .tx li.now .dot{border-color:var(--route);border-top-color:transparent;animation:spin .8s linear infinite}
+.tx li.fail{color:var(--broken)} .tx li.fail .dot{background:var(--broken);border-color:var(--broken)}
+.tx .result{margin-top:14px;font-weight:600;font-size:15px}
+.tx .x{position:absolute;top:12px;right:14px;background:none;border:0;font-size:22px;cursor:pointer;color:var(--ink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.banner{background:var(--pending);color:var(--ink);border-radius:var(--r-md);padding:14px 18px;margin-bottom:24px;font-weight:600;display:none}
+.banner.show{display:block}
+.banner input{margin-top:8px;background:#fff;color:var(--ink);border-color:#e3b23c}
+
+@media (max-width:960px){
+  .hero{grid-template-columns:1fr;padding-top:16px}
+  .grid{grid-template-columns:1fr}
+  .sticky{position:static}
+  .steps{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .stats{grid-template-columns:1fr 1fr}
+  .stat:nth-child(2){border-right:0}
+  .stat:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .steps{grid-template-columns:1fr}
+  .row2{grid-template-columns:1fr}
+  .promise .claim{padding-right:0;margin-top:44px}
+  .lb-row{grid-template-columns:1fr 60px}
+  .lb-row .meter{grid-column:1/-1;grid-row:2}
+  .chip.net{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .road .path{animation:none;stroke-dashoffset:0}
+  .road .stop{animation:none;transform:none}
+  .tx{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 26 C10 26 10 6 16 6 S22 26 28 26" fill="none" stroke="#8B7CFF" stroke-width="4" stroke-linecap="round"/><circle cx="16" cy="6" r="4" fill="#3DDC97"/><circle cx="28" cy="26" r="3.5" fill="#FFC145"/></svg>
+      RoadmapProof
+    </div>
+    <div class="wallet">
+      <span class="chip net">Network <b>GenLayer Studionet</b></span>
+      <span class="chip" id="acct">Not connected</span>
+      <button class="btn ghost" id="connectBtn">Connect MetaMask</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Roadmaps are promises. Now they have receipts.</h1>
+      <p>Crypto teams put each roadmap promise on-chain, with a deadline and their own official page as evidence. When it is time, GenLayer validators read that page and agree on one verdict: kept or broken. Every verdict builds the project's public Trust Score.</p>
+      <div class="hero-actions">
+        <a class="btn go" href="#make" style="text-decoration:none">Make a promise</a>
+        <a class="btn ghost" href="#feed" style="text-decoration:none">Check a project</a>
+      </div>
+    </div>
+    <svg class="road" viewBox="0 0 560 450" role="img" aria-label="A roadmap with milestones marked kept, broken and pending">
+      <defs>
+        <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stop-color="#8B7CFF"/><stop offset=".45" stop-color="#4CC9F0"/><stop offset=".75" stop-color="#FFC145"/><stop offset="1" stop-color="#FF5D73"/>
+        </linearGradient>
+      </defs>
+      <path class="ghost-path" d="M30 380 C 140 380, 120 250, 230 250 S 330 120, 420 120 S 520 40, 530 30"/>
+      <path class="path" stroke="url(#g)" d="M30 380 C 140 380, 120 250, 230 250 S 330 120, 420 120 S 520 40, 530 30"/>
+      <g class="stop" style="animation-delay:.6s"><circle cx="30" cy="380" r="16" fill="#3DDC97"/><path d="M23 380 l5 5 l10 -10" stroke="#1C1838" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>
+      <text x="14" y="420">Testnet live</text><text class="sub" x="14" y="440">Kept · verified on release page</text>
+      <g class="stop" style="animation-delay:1.2s"><circle cx="230" cy="250" r="16" fill="#3DDC97"/><path d="M223 250 l5 5 l10 -10" stroke="#1C1838" stroke-width="3.5" fill="none" stroke-linecap="round"/></g>
+      <text x="256" y="282">Audit published</text><text class="sub" x="256" y="302">Kept · verified on GitHub</text>
+      <g class="stop" style="animation-delay:1.8s"><circle cx="420" cy="120" r="16" fill="#FF5D73"/><path d="M413 113 l14 14 M427 113 l-14 14" stroke="#1C1838" stroke-width="3.5" stroke-linecap="round"/></g>
+      <text x="300" y="84">Mainnet in Q3</text><text class="sub" x="300" y="104">Broken · deadline missed</text>
+      <g class="stop" style="animation-delay:2.4s"><circle cx="530" cy="30" r="16" fill="#FFC145"/><circle cx="530" cy="30" r="5" fill="#1C1838"/></g>
+      <text x="400" y="36" text-anchor="end">Mobile app</text><text class="sub" x="400" y="54" text-anchor="end">Pending · due Dec 15</text>
+    </svg>
+  </section>
+
+  <div class="banner" id="setup">
+    The contract address is not set yet. Deploy <code>contracts/roadmap_proof.py</code> in GenLayer Studio, then paste the address here:
+    <input id="addrInput" placeholder="0x…" aria-label="Contract address">
+  </div>
+
+  <section class="stats" aria-label="Live contract totals">
+    <div class="stat"><div class="n kept" id="sKept">–</div><div class="l">Promises kept</div></div>
+    <div class="stat"><div class="n broken" id="sBroken">–</div><div class="l">Promises broken</div></div>
+    <div class="stat"><div class="n pending" id="sPending">–</div><div class="l">Waiting for deadline</div></div>
+    <div class="stat"><div class="n bond" id="sBond">–</div><div class="l">Validator checks run</div></div>
+  </section>
+
+  <main class="grid">
+    <aside class="panel sticky" id="make">
+      <h2>Make a promise</h2>
+      <p class="hint">Use your official page as the evidence link. Validators will read that exact page at verification time.</p>
+      <form id="form">
+        <label for="fProject">Project name</label>
+        <input id="fProject" required maxlength="60" placeholder="Example: Nebula DEX">
+        <label for="fClaim">What will you deliver?</label>
+        <textarea id="fClaim" required minlength="10" maxlength="300" placeholder="Release v2.0 with limit orders on mainnet"></textarea>
+        <label for="fUrl">Official evidence page</label>
+        <input id="fUrl" required type="url" placeholder="https://github.com/your-org/your-repo/releases">
+        <label for="fDeadline">Deadline</label><input id="fDeadline" required type="date">
+        <div class="form-foot"><button class="btn go" id="submitBtn" type="submit">Lock promise on-chain</button></div>
+      </form>
+    </aside>
+
+    <section id="feed">
+      <div class="feed-head">
+        <h2>Promise ledger</h2>
+        <div class="tabs" role="group" aria-label="Filter promises">
+          <button class="tab" data-f="ALL" aria-pressed="true">All</button>
+          <button class="tab" data-f="PENDING" aria-pressed="false">Pending</button>
+          <button class="tab" data-f="KEPT" aria-pressed="false">Kept</button>
+          <button class="tab" data-f="BROKEN" aria-pressed="false">Broken</button>
+        </div>
+      </div>
+      <input id="search" placeholder="Search a project name" aria-label="Search a project name" style="margin-bottom:16px">
+      <div id="list"><div class="empty">Loading promises from GenLayer…</div></div>
+    </section>
+  </main>
+
+  <section class="board" aria-labelledby="lbh">
+    <h2 id="lbh">Trust scores</h2>
+    <div class="lb" id="board"><div class="empty">A project gets a score after its first promise is resolved.</div></div>
+  </section>
+
+  <section class="how" aria-labelledby="howh">
+    <h2 id="howh">How a verdict is reached</h2>
+    <div class="steps">
+      <div class="step"><h3>Lock</h3><p>The team writes the promise, the deadline and its official page. Its wallet is recorded as the author.</p></div>
+      <div class="step"><h3>Read</h3><p>Anyone presses Verify. Each validator opens the live page itself.</p></div>
+      <div class="step"><h3>Agree</h3><p>An AI judge on every validator decides delivered or not, and the verdicts must match.</p></div>
+      <div class="step"><h3>Settle</h3><p>Kept or broken is saved on-chain and updates the Trust Score. Nobody can edit it later.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Built on GenLayer Intelligent Contracts.</span>
+    <span>Contract: <a id="addrLink" href="#">not set</a></span>
+  </footer>
+</div>
+
+<div class="tx" id="tx" role="status" aria-live="polite">
+  <button class="x" id="txClose" aria-label="Close">×</button>
+  <h3 id="txTitle">Transaction</h3>
+  <div class="hash" id="txHash"></div>
+  <ol id="txSteps">
+    <li data-s="SIGN"><span class="dot"></span>Signed and sent</li>
+    <li data-s="PENDING"><span class="dot"></span>Waiting in queue</li>
+    <li data-s="PROPOSING"><span class="dot"></span>Validators reading and judging</li>
+    <li data-s="ACCEPTED"><span class="dot"></span>Consensus reached</li>
+    <li data-s="FINALIZED"><span class="dot"></span>Finalized on-chain</li>
+  </ol>
+  <div class="result" id="txResult"></div>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
