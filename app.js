@@ -35,14 +35,6 @@ window.addEventListener("eip6963:announceProvider", (e) => {
 });
 window.dispatchEvent(new Event("eip6963:requestProvider"));
 
-function pointSdkAt(provider) {
-  // genlayer-js signs through window.ethereum, so make sure it is MetaMask.
-  if (window.ethereum === provider) return true;
-  try { Object.defineProperty(window, "ethereum", { value: provider, configurable: true, writable: true }); } catch {}
-  if (window.ethereum !== provider) { try { window.ethereum = provider; } catch {} }
-  return window.ethereum === provider;
-}
-
 const STUDIO_CHAIN = {
   chainId: "0x" + (61999).toString(16),
   chainName: "GenLayer Studio",
@@ -84,11 +76,8 @@ async function connectWallet(d) {
     try { await provider.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] }); } catch (e) { if (e && e.code === 4001) throw e; }
     const [addr] = await provider.request({ method: "eth_requestAccounts" });
     try { await switchNetwork(provider); } catch { toastError("Please approve the GenLayer Studio network in " + name + "."); }
-    if (!pointSdkAt(provider)) {
-      toastError(name + " connected, but another wallet extension controls this page. Pick that wallet instead, or turn the other one off in chrome://extensions and reload.");
-      return;
-    }
-    client = createClient({ chain: studionet, account: addr });
+    // Hand the chosen wallet straight to the SDK — other extensions cannot interfere.
+    client = createClient({ chain: studionet, account: addr, provider });
     accountLabel = short(addr) + " (" + name + ")";
     $("acct").innerHTML = "<b>" + esc(accountLabel) + "</b>";
     $("connectBtn").textContent = "Switch wallet";
