@@ -133,6 +133,19 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
 .banner.show{display:block}
 .banner input{margin-top:8px;background:#fff;color:var(--ink);border-color:#e3b23c}
 
+.wm{position:fixed;inset:0;background:rgba(12,8,40,.7);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px}
+.wm[hidden]{display:none}
+.wm-box{position:relative;background:var(--paper);color:var(--ink);border-radius:var(--r-lg);padding:24px;width:min(400px,100%)}
+.wm-box h3{font-size:22px}
+.wm-hint{color:#5b5490;font-size:14px;margin:6px 0 16px}
+.wm-box .x{position:absolute;top:12px;right:14px;background:none;border:0;font-size:22px;cursor:pointer;color:var(--ink)}
+.wm-item{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:#fff;border:2px solid #ddd8f6;border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px;cursor:pointer;color:var(--ink)}
+.wm-item:hover{border-color:var(--route)}
+.wm-item img,.wm-ico{width:34px;height:34px;border-radius:8px;flex:none;display:grid;place-items:center;font-size:22px}
+.wm-item b{display:block;font-size:16px}
+.wm-item small{color:#5b5490;font-size:13px}
+.wm-item.guest{background:transparent}
+.wm-empty{font-size:14px;color:#5b5490;margin-bottom:12px}
 @media (max-width:960px){
   .hero{grid-template-columns:1fr;padding-top:16px}
   .grid{grid-template-columns:1fr}
@@ -167,7 +180,7 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
     <div class="wallet">
       <span class="chip net">Network <b>GenLayer Studionet</b></span>
       <span class="chip" id="acct">Not connected</span>
-      <button class="btn ghost" id="connectBtn">Connect MetaMask</button>
+      <button class="btn ghost" id="connectBtn">Connect wallet</button>
     </div>
   </header>
 
@@ -275,6 +288,16 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
     <li data-s="FINALIZED"><span class="dot"></span>Finalized on-chain</li>
   </ol>
   <div class="result" id="txResult"></div>
+</div>
+
+<div class="wm" id="walletModal" role="dialog" aria-modal="true" aria-labelledby="wmTitle" hidden>
+  <div class="wm-box">
+    <button class="x" id="wmClose" aria-label="Close">×</button>
+    <h3 id="wmTitle">Choose a wallet</h3>
+    <p class="wm-hint">Your wallet will open and ask which account to connect.</p>
+    <div id="wmList"></div>
+    <button class="wm-item guest" id="wmGuest"><span class="wm-ico">🔑</span><span><b>Browser key</b><small>Test wallet made by this page. No extension needed.</small></span></button>
+  </div>
 </div>
 
 <script type="module" src="app.js"></script>

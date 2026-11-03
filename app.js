@@ -26,24 +26,14 @@ function useBurner() {
   $("acct").innerHTML = "<b>" + accountLabel + "</b>";
 }
 
-// Find the real MetaMask even when other wallet extensions (OKX, Phantom, Rabby,
-// Coinbase…) are installed and have taken over window.ethereum.
+// Every installed wallet extension announces itself (EIP-6963), so we can
+// show a picker (Rabby, MetaMask, OKX, …) like other GenLayer apps.
 const announced = [];
-window.addEventListener("eip6963:announceProvider", (e) => announced.push(e.detail));
+window.addEventListener("eip6963:announceProvider", (e) => {
+  const d = e.detail;
+  if (d && d.info && !announced.find((x) => x.info.uuid === d.info.uuid)) announced.push(d);
+});
 window.dispatchEvent(new Event("eip6963:requestProvider"));
-
-function findMetaMask() {
-  const viaEip = announced.find((d) => d.info && d.info.rdns === "io.metamask");
-  if (viaEip) return viaEip.provider;
-  const eth = window.ethereum;
-  if (!eth) return null;
-  if (Array.isArray(eth.providers)) {
-    const mm = eth.providers.find((p) => p.isMetaMask && !p.isBraveWallet && !p.isRabby && !p.isOkxWallet && !p.isPhantom);
-    if (mm) return mm;
-  }
-  if (eth.isMetaMask && !eth.isRabby && !eth.isOkxWallet && !eth.isPhantom && !eth.isBraveWallet) return eth;
-  return null;
-}
 
 function pointSdkAt(provider) {
   // genlayer-js signs through window.ethereum, so make sure it is MetaMask.
@@ -71,26 +61,41 @@ async function switchNetwork(provider) {
   }
 }
 
-async function useMetaMask() {
-  await new Promise((r) => setTimeout(r, 300)); // give wallets time to announce
-  const mm = findMetaMask();
-  if (!mm) {
-    toastError("MetaMask was not found. If another wallet extension (OKX, Phantom, Rabby, Coinbase) is installed, turn it off in chrome://extensions, reload this page and try again. You can keep using the browser key meanwhile.");
-    return;
-  }
-  if (!pointSdkAt(mm)) {
-    toastError("Another wallet extension is blocking MetaMask on this page. Turn the other wallet off in chrome://extensions, reload and connect again.");
-    return;
-  }
+function openWalletPicker() {
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+  setTimeout(() => {
+    const list = announced.slice();
+    if (!list.length && window.ethereum) {
+      list.push({ info: { name: "Browser wallet", icon: "", rdns: "injected", uuid: "injected" }, provider: window.ethereum });
+    }
+    $("wmList").innerHTML = list.length
+      ? list.map((d, i) => `<button class="wm-item" data-i="${i}">${d.info.icon ? `<img src="${esc(d.info.icon)}" alt="">` : '<span class="wm-ico">👛</span>'}<span><b>${esc(d.info.name)}</b><small>Connect with ${esc(d.info.name)}</small></span></button>`).join("")
+      : '<p class="wm-empty">No wallet extension found. Install MetaMask or Rabby, or use the browser key below.</p>';
+    $("wmList").querySelectorAll("[data-i]").forEach((btn) => btn.addEventListener("click", () => connectWallet(list[+btn.dataset.i])));
+    $("walletModal").hidden = false;
+  }, 250);
+}
+
+async function connectWallet(d) {
+  $("walletModal").hidden = true;
+  const provider = d.provider, name = d.info.name;
   try {
-    const [addr] = await mm.request({ method: "eth_requestAccounts" });
-    try { await switchNetwork(mm); } catch (e) { toastError("Please approve the GenLayer Studio network in MetaMask."); }
+    // Always open the wallet so the person can pick the account.
+    try { await provider.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] }); } catch (e) { if (e && e.code === 4001) throw e; }
+    const [addr] = await provider.request({ method: "eth_requestAccounts" });
+    try { await switchNetwork(provider); } catch { toastError("Please approve the GenLayer Studio network in " + name + "."); }
+    if (!pointSdkAt(provider)) {
+      toastError(name + " connected, but another wallet extension controls this page. Pick that wallet instead, or turn the other one off in chrome://extensions and reload.");
+      return;
+    }
     client = createClient({ chain: studionet, account: addr });
-    accountLabel = short(addr) + " (MetaMask)";
-    $("acct").innerHTML = "<b>" + accountLabel + "</b>";
-    $("connectBtn").textContent = "MetaMask connected";
+    accountLabel = short(addr) + " (" + name + ")";
+    $("acct").innerHTML = "<b>" + esc(accountLabel) + "</b>";
+    $("connectBtn").textContent = "Switch wallet";
     $("tx").classList.remove("show");
-  } catch (e) { toastError("MetaMask connection was rejected."); }
+  } catch (e) {
+    toastError(name + " connection was cancelled.");
+  }
 }
 
 // ---------- helpers ----------
@@ -272,7 +277,10 @@ document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () 
 }));
 $("search").addEventListener("input", render);
 $("txClose").addEventListener("click", () => $("tx").classList.remove("show"));
-$("connectBtn").addEventListener("click", useMetaMask);
+$("connectBtn").addEventListener("click", openWalletPicker);
+$("wmClose").addEventListener("click", () => ($("walletModal").hidden = true));
+$("walletModal").addEventListener("click", (e) => { if (e.target.id === "walletModal") $("walletModal").hidden = true; });
+$("wmGuest").addEventListener("click", () => { $("walletModal").hidden = true; useBurner(); $("connectBtn").textContent = "Connect wallet"; });
 $("addrInput").addEventListener("change", (e) => {
   const v = e.target.value.trim();
   if (/^0x[0-9a-fA-F]{40}$/.test(v)) { CONTRACT = v; store.set("rp_contract", v); refresh(); }
