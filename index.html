@@ -12,7 +12,7 @@
 :root{
   --ink:#1C1838; --ink-2:#262049; --ink-3:#322a5e; --line:#41397a;
   --paper:#EDE9FF; --muted:#A9A2D6;
-  --kept:#3DDC97; --broken:#FF5D73; --pending:#FFC145; --route:#8B7CFF; --sky:#4CC9F0;
+  --kept:#3DDC97; --broken:#FF5D73; --pending:#FFC145; --void:#9B95C9; --route:#8B7CFF; --sky:#4CC9F0;
   --r-sm:8px; --r-md:14px; --r-lg:22px;
 }
 *{box-sizing:border-box}
@@ -82,13 +82,19 @@ input::placeholder,textarea::placeholder{color:#6f68a3}
 .promise{position:relative;background:var(--ink-2);border:1px solid var(--line);border-left:6px solid var(--pending);border-radius:var(--r-md);padding:20px 22px;margin-bottom:14px;overflow:hidden}
 .promise.KEPT{border-left-color:var(--kept)}
 .promise.BROKEN{border-left-color:var(--broken)}
+.promise.VOID{border-left-color:var(--void)}
+.promise .pid{font-family:Manrope;font-weight:600;font-size:14px;color:var(--muted)}
+.own{font-style:normal;font-size:12px;font-weight:700;color:var(--kept);border:1px solid currentColor;border-radius:999px;padding:1px 8px;margin-left:4px}
+.own.you{color:var(--sky)}
+.owner-hint{font-size:13px;margin-top:6px;min-height:1em;color:var(--muted)}
+.owner-hint.ok{color:var(--kept)} .owner-hint.bad{color:var(--broken)}
 .promise .proj{font-family:Syne;font-weight:700;font-size:20px}
 .promise .claim{font-size:17px;margin:6px 0 12px;max-width:52ch;padding-right:110px}
 .meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:14px}
 .meta a{color:var(--sky);word-break:break-all}
 .reason{margin-top:12px;padding:10px 14px;background:var(--ink);border-radius:var(--r-sm);font-size:14px;color:var(--paper)}
 .stamp{position:absolute;top:18px;right:18px;transform:rotate(-9deg);border:3px solid currentColor;border-radius:8px;padding:4px 12px;font-family:Syne;font-weight:800;font-size:18px;letter-spacing:.04em;color:var(--pending)}
-.KEPT .stamp{color:var(--kept)} .BROKEN .stamp{color:var(--broken)}
+.KEPT .stamp{color:var(--kept)} .BROKEN .stamp{color:var(--broken)} .VOID .stamp{color:var(--void)}
 .promise .actions{margin-top:14px}
 .btn.small{padding:8px 16px;font-size:14px}
 .empty{border:2px dashed var(--line);border-radius:var(--r-lg);padding:40px;text-align:center;color:var(--muted)}
@@ -99,6 +105,7 @@ input::placeholder,textarea::placeholder{color:#6f68a3}
 .lb{display:grid;gap:10px}
 .lb-row{display:grid;grid-template-columns:1fr 2fr 70px;gap:16px;align-items:center;background:var(--ink-2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 20px}
 .lb-row .name{font-weight:700}
+.lb-row .name small{display:block;font-weight:500;font-size:13px;color:var(--muted)}
 .meter{height:12px;border-radius:999px;background:var(--ink);overflow:hidden;display:flex}
 .meter i{display:block;height:100%}
 .score{font-family:Syne;font-weight:800;font-size:22px;text-align:right}
@@ -112,6 +119,14 @@ input::placeholder,textarea::placeholder{color:#6f68a3}
 .step h3{font-size:19px;margin-bottom:6px}
 .step h3::before{counter-increment:s;content:counter(s) ". "}
 .step p{color:var(--muted);margin:0;font-size:15px}
+.v2{margin:72px 0 0}
+.v2 h2{font-size:34px;margin-bottom:8px}
+.v2 .hint{color:var(--muted);margin:0 0 20px;max-width:60ch}
+.fixes{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.fix{background:var(--ink-2);border:1px solid var(--line);border-radius:var(--r-md);padding:18px 20px}
+.fix .was{color:var(--broken);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.fix .now{color:var(--kept);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:10px}
+.fix p{margin:4px 0 0;font-size:15px}
 footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);font-size:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
 /* tx lifecycle drawer */
@@ -151,6 +166,7 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
   .grid{grid-template-columns:1fr}
   .sticky{position:static}
   .steps{grid-template-columns:1fr 1fr}
+  .fixes{grid-template-columns:1fr}
 }
 @media (max-width:620px){
   .stats{grid-template-columns:1fr 1fr}
@@ -162,6 +178,9 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
   .lb-row{grid-template-columns:1fr 60px}
   .lb-row .meter{grid-column:1/-1;grid-row:2}
   .chip.net{display:none}
+  .bar{flex-wrap:wrap}
+  .wallet{justify-content:flex-start;width:100%}
+  .wallet .chip{white-space:normal;overflow-wrap:anywhere}
 }
 @media (prefers-reduced-motion:reduce){
   .road .path{animation:none;stroke-dashoffset:0}
@@ -175,7 +194,7 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
   <header class="bar">
     <div class="logo">
       <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 26 C10 26 10 6 16 6 S22 26 28 26" fill="none" stroke="#8B7CFF" stroke-width="4" stroke-linecap="round"/><circle cx="16" cy="6" r="4" fill="#3DDC97"/><circle cx="28" cy="26" r="3.5" fill="#FFC145"/></svg>
-      RoadmapProof
+      RoadmapProof <span class="chip" id="ver" style="font-family:Manrope;font-size:12px;padding:3px 10px">v2</span>
     </div>
     <div class="wallet">
       <span class="chip net">Network <b>GenLayer Studionet</b></span>
@@ -213,7 +232,7 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
   </section>
 
   <div class="banner" id="setup">
-    The contract address is not set yet. Deploy <code>contracts/roadmap_proof.py</code> in GenLayer Studio, then paste the address here:
+    The contract address is not set yet. Deploy <code>contracts/roadmap_proof.py</code> (v2) in GenLayer Studio, then paste the address here:
     <input id="addrInput" placeholder="0x…" aria-label="Contract address">
   </div>
 
@@ -227,10 +246,11 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
   <main class="grid">
     <aside class="panel sticky" id="make">
       <h2>Make a promise</h2>
-      <p class="hint">Use your official page as the evidence link. Validators will read that exact page at verification time.</p>
+      <p class="hint">Use your official page as the evidence link. Validators will read that exact page at verification time. The first wallet to post for a project name becomes its owner, and only that wallet can add more promises for it.</p>
       <form id="form">
         <label for="fProject">Project name</label>
         <input id="fProject" required maxlength="60" placeholder="Example: Nebula DEX">
+        <div class="owner-hint" id="ownerHint" aria-live="polite"></div>
         <label for="fClaim">What will you deliver?</label>
         <textarea id="fClaim" required minlength="10" maxlength="300" placeholder="Release v2.0 with limit orders on mainnet"></textarea>
         <label for="fUrl">Official evidence page</label>
@@ -248,6 +268,7 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
           <button class="tab" data-f="PENDING" aria-pressed="false">Pending</button>
           <button class="tab" data-f="KEPT" aria-pressed="false">Kept</button>
           <button class="tab" data-f="BROKEN" aria-pressed="false">Broken</button>
+          <button class="tab" data-f="VOID" aria-pressed="false" title="Already delivered before the promise was made. Not counted in Trust Scores.">Void</button>
         </div>
       </div>
       <input id="search" placeholder="Search a project name" aria-label="Search a project name" style="margin-bottom:16px">
@@ -263,15 +284,30 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
   <section class="how" aria-labelledby="howh">
     <h2 id="howh">How a verdict is reached</h2>
     <div class="steps">
-      <div class="step"><h3>Lock</h3><p>The team writes the promise, the deadline and its official page. Its wallet is recorded as the author.</p></div>
+      <div class="step"><h3>Lock</h3><p>The team writes the promise, the deadline and its official page. Its wallet owns the project name, so nobody else can post for it.</p></div>
       <div class="step"><h3>Read</h3><p>Anyone presses Verify. Each validator opens the live page itself.</p></div>
-      <div class="step"><h3>Agree</h3><p>An AI judge on every validator decides delivered or not, and the verdicts must match.</p></div>
-      <div class="step"><h3>Settle</h3><p>Kept or broken is saved on-chain and updates the Trust Score. Nobody can edit it later.</p></div>
+      <div class="step"><h3>Agree</h3><p>An AI judge on every validator compares the page with the promise date and deadline, and the verdicts must match.</p></div>
+      <div class="step"><h3>Settle</h3><p>Kept or broken is saved on-chain and updates the Trust Score. Things shipped before the promise are marked void and give no score.</p></div>
+    </div>
+  </section>
+
+  <section class="v2" aria-labelledby="v2h">
+    <h2 id="v2h">What changed in v2</h2>
+    <p class="hint">Community reviewers tested v1 and found real gaps. Each one is fixed in the contract and covered by a test in <code>tests/test_roadmap_proof.py</code>.</p>
+    <div class="fixes">
+      <div class="fix"><div class="was">Found in review</div><p>Anyone could post promises under any project name, so the Trust Score could be farmed or attacked.</p>
+        <div class="now">Fixed</div><p>The first wallet to claim a name owns it. Only the owner can add promises. Owners can hand the name to a new team wallet.</p></div>
+      <div class="fix"><div class="was">Found in review</div><p>A promise for something already shipped (Python 3.14) resolved KEPT straight away. The creation date was never given to the judge.</p>
+        <div class="now">Fixed</div><p>The judge now sees the promise date. Anything released before it is marked VOID and does not count toward the score.</p></div>
+      <div class="fix"><div class="was">Found in review</div><p>The same promise could be recorded twice as two separate KEPT entries.</p>
+        <div class="now">Fixed</div><p>Same project plus same claim is rejected, even with different spacing, case or punctuation.</p></div>
+      <div class="fix"><div class="was">Found in review</div><p>No tests in the repo, and the deployed contract did not match the repo code.</p>
+        <div class="now">Fixed</div><p>19 unit tests added. v2 is deployed from the exact repo file, and <code>get_version()</code> returns 2.0.0 on-chain.</p></div>
     </div>
   </section>
 
   <footer>
-    <span>Built on GenLayer Intelligent Contracts.</span>
+    <span>Built on GenLayer Intelligent Contracts. RoadmapProof v2.</span>
     <span>Contract: <a id="addrLink" href="#">not set</a></span>
   </footer>
 </div>
@@ -300,6 +336,6 @@ footer{border-top:1px solid var(--line);padding:24px 0 40px;color:var(--muted);f
   </div>
 </div>
 
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=5"></script>
 </body>
 </html>

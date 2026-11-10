@@ -1,9 +1,9 @@
-// RoadmapProof frontend — talks to the RoadmapProof Intelligent Contract on GenLayer Studionet.
+// RoadmapProof v2 frontend — talks to the RoadmapProof v2 Intelligent Contract on GenLayer Studionet.
 import { createClient, createAccount, generatePrivateKey } from "https://esm.sh/genlayer-js@latest";
 import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
 
-// Paste your deployed contract address here (or in the yellow box on the page).
-const DEFAULT_CONTRACT = "0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10";
+// Paste your deployed v2 contract address between the quotes (or in the yellow box on the page).
+const DEFAULT_CONTRACT = "0x9b5D8f6155ad7578Db16B452de3aaD0E7fB7D467";
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -11,9 +11,11 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
 };
 
-let CONTRACT = DEFAULT_CONTRACT || store.get("rp_contract");
-let client, accountLabel;
+const isAddr = (v) => /^0x[0-9a-fA-F]{40}$/.test(String(v || ""));
+let CONTRACT = isAddr(DEFAULT_CONTRACT) ? DEFAULT_CONTRACT : (isAddr(store.get("rp_contract")) ? store.get("rp_contract") : "");
+let client, accountLabel, myAddr = "";
 let promises = [];
+let projects = {};
 let filter = "ALL";
 
 // ---------- wallet ----------
@@ -22,6 +24,7 @@ function useBurner() {
   if (!pk) { pk = generatePrivateKey(); store.set("rp_burner", pk); }
   const account = createAccount(pk);
   client = createClient({ chain: studionet, account });
+  myAddr = account.address.toLowerCase();
   accountLabel = short(account.address) + " (browser key)";
   $("acct").innerHTML = "<b>" + accountLabel + "</b>";
 }
@@ -78,10 +81,12 @@ async function connectWallet(d) {
     try { await switchNetwork(provider); } catch { toastError("Please approve the GenLayer Studio network in " + name + "."); }
     // Hand the chosen wallet straight to the SDK — other extensions cannot interfere.
     client = createClient({ chain: studionet, account: addr, provider });
+    myAddr = String(addr).toLowerCase();
     accountLabel = short(addr) + " (" + name + ")";
     $("acct").innerHTML = "<b>" + esc(accountLabel) + "</b>";
     $("connectBtn").textContent = "Switch wallet";
     $("tx").classList.remove("show");
+    render();
   } catch (e) {
     toastError(name + " connection was cancelled.");
   }
@@ -99,6 +104,9 @@ function fromWei(w) {
   const whole = v / 10n ** 18n, frac = (v % 10n ** 18n).toString().padStart(18, "0").slice(0, 2);
   return frac === "00" ? whole.toString() : `${whole}.${frac}`;
 }
+// Same rule as the contract: lower case, letters/digits only, single spaces.
+const norm = (t) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+const day = (iso) => String(iso || "").slice(0, 10);
 const parse = (r) => { try { return typeof r === "string" ? JSON.parse(r) : r; } catch { return null; } };
 
 async function read(fn, args = []) {
@@ -194,16 +202,45 @@ function render() {
   $("list").innerHTML = rows.map((p) => {
     const due = p.deadline < today ? "Deadline passed" : "Due";
     const verify = p.status === "PENDING" ? `<div class="actions"><button class="btn small go" data-verify="${esc(p.id)}">Verify now</button></div>` : "";
+    const owner = projects[p.project_key || norm(p.project)];
+    const isOwner = owner && owner.owner === String(p.creator).toLowerCase();
+    const mine = myAddr && String(p.creator).toLowerCase() === myAddr;
     return `<article class="promise ${esc(p.status)}">
       <span class="stamp">${esc(p.status)}</span>
-      <div class="proj">${esc(p.project)}</div>
+      <div class="proj">${esc(p.project)} <span class="pid">#${esc(p.id)}</span></div>
       <div class="claim">${esc(p.claim)}</div>
-      <div class="meta"><span>${due} <b>${esc(p.deadline)}</b></span><span>By <b>${esc(short(p.creator))}</b></span><span>Checks <b>${p.checks}</b></span>
+      <div class="meta"><span>Promised <b>${esc(day(p.created_at))}</b></span><span>${due} <b>${esc(p.deadline)}</b></span>
+        <span>By <b>${esc(short(p.creator))}</b>${isOwner ? ' <i class="own" title="This wallet owns the project name">✓ owner</i>' : ""}${mine ? ' <i class="own you">you</i>' : ""}</span>
+        <span>Checks <b>${p.checks}</b></span>
         <a href="${esc(p.evidence_url)}" target="_blank" rel="noopener">Evidence page</a></div>
       ${p.reason ? `<div class="reason">${esc(p.reason)}</div>` : ""}
       ${verify}
     </article>`;
   }).join("");
+}
+
+// Checks done in the page before a transaction, with the same rules as the
+// contract, so people get a clear message instead of a failed transaction.
+function precheck(project, claim) {
+  const key = norm(project);
+  if (key.length < 2) return "Project name needs letters or numbers.";
+  const owner = projects[key];
+  if (owner && myAddr && owner.owner !== myAddr) {
+    return `“${owner.name}” is owned by wallet ${short(owner.owner)}. Only that wallet can add promises for it. Use your own project name.`;
+  }
+  const dup = promises.find((p) => (p.project_key || norm(p.project)) === key && norm(p.claim) === norm(claim));
+  if (dup) return `This promise is already recorded as #${dup.id}.`;
+  return "";
+}
+
+function updateOwnerHint() {
+  const key = norm($("fProject").value);
+  const owner = projects[key];
+  const el = $("ownerHint");
+  if (!key || key.length < 2) { el.textContent = ""; el.className = "owner-hint"; return; }
+  if (!owner) { el.textContent = "New name. Your wallet will become the owner of this project."; el.className = "owner-hint ok"; }
+  else if (myAddr && owner.owner === myAddr) { el.textContent = "You own this project. You can add promises."; el.className = "owner-hint ok"; }
+  else { el.textContent = `Owned by ${short(owner.owner)}. Only that wallet can add promises.`; el.className = "owner-hint bad"; }
 }
 
 function renderBoard(rows) {
@@ -212,7 +249,8 @@ function renderBoard(rows) {
   $("board").innerHTML = rows.map((r) => {
     const total = r.kept + r.broken + r.pending;
     const color = r.score >= 70 ? "var(--kept)" : r.score >= 40 ? "var(--pending)" : "var(--broken)";
-    return `<div class="lb-row"><div class="name">${esc(r.project)}</div>
+    const extra = `${r.kept} kept · ${r.broken} broken` + (r.void ? ` · ${r.void} void (not counted)` : "") + ` · owner ${short(r.owner)}`;
+    return `<div class="lb-row"><div class="name">${esc(r.project)}<small>${esc(extra)}</small></div>
       <div class="meter" aria-label="${r.kept} kept, ${r.broken} broken, ${r.pending} pending">
         <i style="width:${(r.kept / total) * 100}%;background:var(--kept)"></i>
         <i style="width:${(r.broken / total) * 100}%;background:var(--broken)"></i>
@@ -227,16 +265,20 @@ async function refresh() {
   $("addrLink").textContent = short(CONTRACT);
   $("addrLink").href = "https://explorer-studio.genlayer.com/address/" + CONTRACT;
   try {
-    const [list, stats, board] = await Promise.all([read("get_promises"), read("get_stats"), read("get_leaderboard")]);
+    const [list, stats, board, projs] = await Promise.all([read("get_promises"), read("get_stats"), read("get_leaderboard"), read("get_projects")]);
     promises = list || [];
+    projects = {};
+    (projs || []).forEach((p) => { projects[p.key] = p; });
+    if (stats && stats.version) $("ver").textContent = "v" + stats.version;
     if (stats) {
       $("sKept").textContent = stats.kept; $("sBroken").textContent = stats.broken;
       $("sPending").textContent = stats.pending; $("sBond").textContent = stats.total_checks;
     }
     renderBoard(board);
     render();
+    updateOwnerHint();
   } catch (e) {
-    $("list").innerHTML = `<div class="empty">Could not read the contract. Check the address is a RoadmapProof contract on Studionet.<br><small>${esc(e.shortMessage || e.message)}</small></div>`;
+    $("list").innerHTML = `<div class="empty">Could not read the contract. Check the address is a RoadmapProof v2 contract on Studionet.<br><small>${esc(e.shortMessage || e.message)}</small></div>`;
   }
 }
 
@@ -244,12 +286,16 @@ async function refresh() {
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!CONTRACT) { toastError("Set the contract address first (yellow box)."); return; }
-  const btn = $("submitBtn"); btn.disabled = true;
   const args = [$("fProject").value.trim(), $("fClaim").value.trim(), $("fUrl").value.trim(), $("fDeadline").value];
+  if (!args[2].startsWith("https://")) { toastError("The evidence page must start with https://"); return; }
+  const problem = precheck(args[0], args[1]);
+  if (problem) { toastError(problem); return; }
+  const btn = $("submitBtn"); btn.disabled = true;
   const ok = await sendTx("Locking your promise", "create_promise", args);
-  if (ok) $("form").reset();
+  if (ok) { $("form").reset(); setDefaultDeadline(); updateOwnerHint(); }
   btn.disabled = false;
 });
+$("fProject").addEventListener("input", updateOwnerHint);
 
 $("list").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-verify]");
@@ -276,9 +322,12 @@ $("addrInput").addEventListener("change", (e) => {
   else toastError("That does not look like a contract address (0x + 40 characters).");
 });
 
-const d = new Date(); d.setDate(d.getDate() + 30);
-$("fDeadline").value = d.toISOString().slice(0, 10);
-$("fDeadline").min = new Date().toISOString().slice(0, 10);
+function setDefaultDeadline() {
+  const d = new Date(); d.setDate(d.getDate() + 30);
+  $("fDeadline").value = d.toISOString().slice(0, 10);
+  $("fDeadline").min = new Date().toISOString().slice(0, 10);
+}
+setDefaultDeadline();
 
 useBurner();
 refresh();

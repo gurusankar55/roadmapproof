@@ -1,6 +1,21 @@
-# RoadmapProof
+# RoadmapProof v2
 
 **On-chain accountability for crypto roadmap promises, judged by GenLayer validators.**
+
+## What's new in v2 (fixes from community reviews)
+
+Two community reviewers tested v1 in the GenLayer Explorer (4/5 each) and listed real gaps. v2 fixes every one:
+
+| Found in review | v2 fix |
+|---|---|
+| Anyone could register a promise for any project name, so the Trust Score was gameable. | **Project ownership.** The first wallet to claim a name owns it (`claim_project`, or automatically on its first promise). Only the owner wallet can add promises. Names are matched case- and punctuation-insensitively (`Nebula DEX` = `nebula-dex`). Owners can hand a project to a new team wallet with `transfer_project`. |
+| A promise for something already released (Python 3.14, shipped Oct 2025) resolved KEPT straight away. `created_at` was stored but never passed to the judge. | **Promise date sent to the judge.** The prompt now includes `PROMISE MADE ON`. If the page shows the item was released before that date, the verdict is `ALREADY_DONE` and the promise becomes **VOID**, which never counts toward the Trust Score. |
+| Python 3.14 was recorded twice as two separate KEPT promises. | **Duplicate guard.** The same project + same claim (ignoring case, spacing and punctuation) is rejected with the id of the existing promise. |
+| No BROKEN case proven live yet. | A live BROKEN example is recorded on the v2 deployment (see *Live deployment*). |
+| The repo had no tests. | **19 unit tests** in `tests/test_roadmap_proof.py`, run with plain Python. |
+| The deployed contract looked different from the repo HEAD. | v2 is deployed from this exact `contracts/roadmap_proof.py`. Anyone can call `get_version()` on the explorer; it returns `2.0.0`. |
+
+The website also checks ownership and duplicates before sending a transaction, shows the owner wallet on every promise and on the Trust Score board, and has a **Void** filter.
 
 ## The problem
 
@@ -8,14 +23,15 @@ Crypto teams announce dates all the time: "mainnet in Q3", "v2 by December", "mo
 
 ## What RoadmapProof does
 
-1. **Lock.** A team registers a promise: what it will deliver, a deadline, and the **official page** where proof will appear (GitHub releases, changelog, blog, docs). The team's wallet is recorded as the author.
+1. **Lock.** A team registers a promise: what it will deliver, a deadline, and the **official page** where proof will appear (GitHub releases, changelog, blog, docs). The team's wallet owns the project name, so nobody else can post promises for it.
 2. **Read.** Anyone presses **Verify**. Every GenLayer validator opens that live page itself with `gl.nondet.web.render`.
 3. **Agree.** An LLM judge on each validator decides `DELIVERED`, `NOT_DELIVERED` or `UNCLEAR`. Through `gl.eq_principle.prompt_comparative` the validators must reach the same verdict — no single model, server or admin decides.
 4. **Settle.**
-   - Delivered → status **KEPT**.
+   - Delivered after the promise was made → status **KEPT**.
+   - Already delivered before the promise was made → status **VOID** (no credit).
    - Not delivered and the deadline has passed → status **BROKEN**.
    - Not delivered but the deadline is still open, or the page is unclear → stays **PENDING** with the latest reason recorded. Anyone can check again later.
-5. Every project earns a public **Trust Score** (kept ÷ resolved) from its history.
+5. Every project earns a public **Trust Score** (kept ÷ (kept + broken)) from its history. VOID promises are never counted.
 
 ### Why GenLayer is required
 
@@ -26,6 +42,7 @@ A normal smart contract cannot read a website or understand whether "v2.0 with l
 ```
 RoadmapProof/
 ├── contracts/roadmap_proof.py   # Intelligent Contract
+├── tests/test_roadmap_proof.py  # 19 unit tests (plain Python)
 ├── index.html                   # Frontend (single page)
 ├── app.js                       # genlayer-js wiring + transaction lifecycle UI
 └── README.md
@@ -35,14 +52,28 @@ RoadmapProof/
 
 | Method | Type | What it does |
 |---|---|---|
-| `create_promise(project, claim, evidence_url, deadline)` | write | Registers a promise. Deadline format `YYYY-MM-DD`. |
-| `verify_promise(promise_id)` | write | Validators read the evidence page, judge, reach consensus and settle. |
+| `claim_project(project, website)` | write | Claims a project name for the sender wallet. `website` may be empty or an https link. |
+| `transfer_project(project, new_owner)` | write | Owner only. Hands the project name to another wallet. |
+| `create_promise(project, claim, evidence_url, deadline)` | write | Owner only (first post claims the name). Rejects duplicates. Deadline format `YYYY-MM-DD`, today or later (UTC). |
+| `verify_promise(promise_id)` | write | Anyone. Validators read the evidence page, judge against the promise date and deadline, reach consensus and settle. |
 | `get_promises()` | view | All promises, newest first (JSON). |
 | `get_promise(promise_id)` | view | One promise (JSON). |
-| `get_leaderboard()` | view | Trust Score per project (JSON). |
-| `get_stats()` | view | Totals: kept, broken, pending, validator checks (JSON). |
+| `get_project(project)` / `get_projects()` | view | Owner records (JSON). |
+| `get_leaderboard()` | view | Trust Score per project with owner and void count (JSON). |
+| `get_stats()` | view | Totals: kept, broken, pending, void, projects, validator checks (JSON). |
+| `get_version()` | view | `2.0.0` — confirms the deployed code is this repo version. |
 
-Safety details: input limits on every field, https-only evidence links, deadlines cannot be in the past, the prompt tells the model to ignore instructions inside the page (prompt-injection guard), model output is parsed into a fixed verdict set, and a promise cannot be resolved twice.
+Safety details: owner-only promises per project, duplicate guard, input limits on every field, https-only evidence links, deadlines cannot be in the past, the prompt tells the model to ignore instructions inside the page (prompt-injection guard), model output is parsed into a fixed verdict set (`DELIVERED`, `NOT_DELIVERED`, `ALREADY_DONE`, `UNCLEAR`), and a promise cannot be resolved twice.
+
+Known limit: a project name goes to the first wallet that claims it. A future version can let validators confirm the claimer controls the project's official website.
+
+## Tests
+
+```
+python tests/test_roadmap_proof.py
+```
+
+The test file loads the real contract with a small stand-in for the `genlayer` module, so no node is needed. It covers ownership, name variants, transfer, duplicates, input rules, the promise date in the prompt, VOID, KEPT, BROKEN after the deadline, PENDING before it, bad model output, double resolution and the Trust Score.
 
 ## Frontend
 
@@ -53,9 +84,9 @@ Safety details: input limits on every field, https-only evidence links, deadline
 
 ## Live deployment
 
-- Contract (GenLayer Studionet): [`0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10`](https://explorer-studio.genlayer.com/address/0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10)
+- v2 contract (GenLayer Studionet): [`0x9b5D8f6155ad7578Db16B452de3aaD0E7fB7D467`](https://explorer-studio.genlayer.com/address/0x9b5D8f6155ad7578Db16B452de3aaD0E7fB7D467)
 - Website: https://gurusankar55.github.io/roadmapproof/
-- First verified promise: Node.js — "Release Node.js version 22" → **KEPT** (validators found the v22 LTS release on the official GitHub releases page before the deadline).
+- v1 contract (kept for history): [`0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10`](https://explorer-studio.genlayer.com/address/0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10)
 
 ## How to run
 
@@ -68,6 +99,8 @@ Safety details: input limits on every field, https-only evidence links, deadline
 
 - **Kept example:** Project `Node.js`, claim `Release Node.js version 22`, evidence `https://github.com/nodejs/node/releases` → validators find the release → **KEPT**.
 - **Pending example:** a claim for something not yet on the page with a future deadline → stays **PENDING** with the reason.
+- **Void example:** a claim for something released before today (for example a Python version that already shipped) → **VOID**, not counted.
+- **Broken example:** set the deadline to today for something that does not exist, then press **Verify now** the next day → **BROKEN**.
 
 ## Roadmap for continued use
 
