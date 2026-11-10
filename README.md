@@ -84,7 +84,7 @@ The test file loads the real contract with a small stand-in for the `genlayer` m
 
 ## Live deployment
 
-- v2 contract (GenLayer Studionet): [`0x9b5D8f6155ad7578Db16B452de3aaD0E7fB7D467`](https://explorer-studio.genlayer.com/address/0x9b5D8f6155ad7578Db16B452de3aaD0E7fB7D467)
+- v2 contract (GenLayer Studionet): [`0xC0e4a345af38F91D286a9b84aB260e109F066f5b`](https://explorer-studio.genlayer.com/address/0xC0e4a345af38F91D286a9b84aB260e109F066f5b)
 - Website: https://gurusankar55.github.io/roadmapproof/
 - v1 contract (kept for history): [`0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10`](https://explorer-studio.genlayer.com/address/0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10)
 

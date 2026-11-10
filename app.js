@@ -3,7 +3,7 @@ import { createClient, createAccount, generatePrivateKey } from "https://esm.sh/
 import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
 
 // Paste your deployed v2 contract address between the quotes (or in the yellow box on the page).
-const DEFAULT_CONTRACT = "0x9b5D8f6155ad7578Db16B452de3aaD0E7fB7D467";
+const DEFAULT_CONTRACT = "0xC0e4a345af38F91D286a9b84aB260e109F066f5b";
 
 const $ = (id) => document.getElementById(id);
 const store = {
