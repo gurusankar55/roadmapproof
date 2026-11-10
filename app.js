@@ -14,7 +14,7 @@ const store = {
 const isAddr = (v) => /^0x[0-9a-fA-F]{40}$/.test(String(v || ""));
 let CONTRACT = isAddr(DEFAULT_CONTRACT) ? DEFAULT_CONTRACT : (isAddr(store.get("rp_contract")) ? store.get("rp_contract") : "");
 let client, accountLabel, myAddr = "";
-let promises = [];
+let promises = []; let lastRefresh = 0;
 let projects = {};
 let filter = "ALL";
 
@@ -151,8 +151,8 @@ async function sendTx(title, fn, args) {
   $("txHash").textContent = hash;
   setStage("PENDING");
 
-  for (let i = 0; i < 180; i++) {
-    await new Promise((r) => setTimeout(r, 2500));
+  for (let i = 0; i < 90; i++) {
+    await new Promise((r) => setTimeout(r, 5000));
     let t;
     try { t = await client.getTransaction({ hash }); } catch { continue; }
     const name = t?.statusName || t?.status_name || t?.status;
@@ -172,8 +172,8 @@ async function sendTx(title, fn, args) {
   return null;
 }
 async function watchFinal(hash) {
-  for (let i = 0; i < 120; i++) {
-    await new Promise((r) => setTimeout(r, 5000));
+  for (let i = 0; i < 40; i++) {
+    await new Promise((r) => setTimeout(r, 15000));
     try {
       const t = await client.getTransaction({ hash });
       const name = String(t?.statusName || t?.status || "").toUpperCase();
@@ -261,7 +261,7 @@ function renderBoard(rows) {
 
 async function refresh() {
   if (!CONTRACT) { $("setup").classList.add("show"); render(); return; }
-  $("setup").classList.remove("show");
+  $("setup").classList.remove("show"); lastRefresh = Date.now();
   $("addrLink").textContent = short(CONTRACT);
   $("addrLink").href = "https://explorer-studio.genlayer.com/address/" + CONTRACT;
   try {
@@ -278,7 +278,7 @@ async function refresh() {
     render();
     updateOwnerHint();
   } catch (e) {
-    $("list").innerHTML = `<div class="empty">Could not read the contract. Check the address is a RoadmapProof v2 contract on Studionet.<br><small>${esc(e.shortMessage || e.message)}</small></div>`;
+    $("list").innerHTML = `<div class="empty">Could not read the contract right now. GenLayer Studio allows 500 requests per hour, so it may be busy. Please wait a few minutes and refresh.<br><small>${esc(e.shortMessage || e.message)}</small></div>`;
   }
 }
 
@@ -331,4 +331,4 @@ setDefaultDeadline();
 
 useBurner();
 refresh();
-setInterval(refresh, 30000);
+setInterval(() => { if (!document.hidden) refresh(); }, 90000); document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - lastRefresh > 60000) refresh(); });
