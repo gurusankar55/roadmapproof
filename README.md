@@ -11,7 +11,7 @@ Two community reviewers tested v1 in the GenLayer Explorer (4/5 each) and listed
 | Anyone could register a promise for any project name, so the Trust Score was gameable. | **Project ownership.** The first wallet to claim a name owns it (`claim_project`, or automatically on its first promise). Only the owner wallet can add promises. Names are matched case- and punctuation-insensitively (`Nebula DEX` = `nebula-dex`). Owners can hand a project to a new team wallet with `transfer_project`. |
 | A promise for something already released (Python 3.14, shipped Oct 2025) resolved KEPT straight away. `created_at` was stored but never passed to the judge. | **Promise date sent to the judge.** The prompt now includes `PROMISE MADE ON`. If the page shows the item was released before that date, the verdict is `ALREADY_DONE` and the promise becomes **VOID**, which never counts toward the Trust Score. |
 | Python 3.14 was recorded twice as two separate KEPT promises. | **Duplicate guard.** The same project + same claim (ignoring case, spacing and punctuation) is rejected with the id of the existing promise. |
-| No BROKEN case proven live yet. | A live BROKEN example is recorded on the v2 deployment (see *Live deployment*). |
+| No BROKEN case proven live yet. | **Proven live on v2:** promise #3 resolved **BROKEN** after its deadline passed (see *Live proof* below). |
 | The repo had no tests. | **19 unit tests** in `tests/test_roadmap_proof.py`, run with plain Python. |
 | The deployed contract looked different from the repo HEAD. | v2 is deployed from this exact `contracts/roadmap_proof.py`. Anyone can call `get_version()` on the explorer; it returns `2.0.0`. |
 
@@ -87,6 +87,26 @@ The test file loads the real contract with a small stand-in for the `genlayer` m
 - v2 contract (GenLayer Studionet): [`0xC0e4a345af38F91D286a9b84aB260e109F066f5b`](https://explorer-studio.genlayer.com/address/0xC0e4a345af38F91D286a9b84aB260e109F066f5b)
 - Website: https://gurusankar55.github.io/roadmapproof/
 - v1 contract (kept for history): [`0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10`](https://explorer-studio.genlayer.com/address/0x13DCb5fE3EF0D349291fFfCB6F67a5ADDC461c10)
+
+### Live proof on the v2 contract
+
+Real transactions on the v2 contract, verified by GenLayer validators from the live evidence pages:
+
+| # | Promise | Deadline | Verdict | What the validators found |
+|---|---|---|---|---|
+| 3 | Publish a RoadmapProof v5 release on the GitHub releases page | 2026-11-10 | **BROKEN** | Checked on Nov 11, after the deadline: the releases page says "There aren't any releases here". |
+| 4 | Publish the first RoadmapProof website code on GitHub | 2026-12-11 | **VOID** | The commits page shows the code was already committed on Nov 3, 2026, before the promise date (Nov 11). Already-done work earns no Trust Score. |
+| 1 | Publish a RoadmapProof v3 release on the GitHub releases page | 2026-12-10 | **PENDING** | Not delivered yet, deadline still open, so it stays pending instead of being judged early. |
+
+**BROKEN — promise #3 (deadline passed, nothing shipped)**
+
+![Promise #3 resolved BROKEN by validators](docs/live-broken.png)
+
+**VOID — promise #4 (already done before the promise was made)**
+
+![Promise #4 resolved VOID by validators](docs/live-void.png)
+
+Each project's owner wallet is shown with the "owner" badge; only that wallet could post these promises.
 
 ## How to run
 
